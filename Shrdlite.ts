@@ -14,15 +14,22 @@ module Shrdlite {
             if (utterance.trim()) {
                 var plan : string[] = splitStringIntoPlan(utterance);
                 if (!plan) {
-                    plan = parseUtteranceIntoPlan(world, utterance);
+                    parseUtteranceIntoPlan(world, utterance, function (err, plan) {
+                        if (plan) {
+                            world.printDebugInfo("Plan: " + plan.join(", "));
+                            world.performPlan(plan, nextInput);
+                        } else {
+                            nextInput();
+                        }
+                    });
                 }
-                if (plan) {
+                else {
                     world.printDebugInfo("Plan: " + plan.join(", "));
                     world.performPlan(plan, nextInput);
-                    return;
                 }
+            } else {
+                nextInput();
             }
-            nextInput();
         }
         world.printWorld(endlessLoop);
     }
@@ -50,26 +57,95 @@ module Shrdlite {
      }
      ], function(err, interpretations) {
      async.forever(
-     function(next) {
-     world.readUserInput("xxx", function(input) {
-     if (input) {
-     next(input);
-     } else {
-     next();
-     }
-     });
-     },
+         function(next) {
+           world.readUserInput("xxx", function(input) {
+            if (input) {
+                next(input);
+            } else {
+                next();
+            }
+         });
+        },
      function() {
-     // TODO planner here
+        // TODO planner here
      }
      )
      })
 
      */
 
-    //TODO convert the world to a pddl-world before sending it to interpreter and planner!
-    export function parseUtteranceIntoPlan(world : World, utterance : string) : string[] {
-        world.printDebugInfo('Parsing utterance: "' + utterance + '"');
+    export function parseUtteranceIntoPlan(world : World,
+                                           utterance : string,
+                                           callback : (err : string, res : string[]) => void) : void {
+
+        
+        async.waterfall([
+
+            function (callback) {
+                world.printDebugInfo('Parsing utterance: "' + utterance + '"');
+                callback();
+            }
+            ,
+            _.partial(Parser.parse, utterance),
+
+            function (parses, callback) {
+                world.printDebugInfo("Found " + parses.length + " parses");
+                parses.forEach((res, n) => {
+                    world.printDebugInfo("  (" + n + ") " + Parser.parseToString(res));
+                });
+                var extendedState = extendWorldState(world.currentState);
+                callback(null, parses, extendedState);
+            },
+
+            Interpreter.interpret
+        ],
+        function (err, interpretations) {
+            if (err) {
+                if (typeof err === 'string') {
+                    world.printError(""+err);
+                } else {
+                    world.printError(err.name+": "+err.message);
+                }
+            }
+            else {
+                async.forever(
+                    function (next) {
+                        if (interpretations.length===1) {
+                            next(interpretations[0]);
+                        } else {
+                            world.printSystemOutput("Multiple interpretations found:");
+                            var interpretationStrings = _.map(interpretations, Interpreter.interpretationToString);
+                            _.each(interpretationStrings, world.printSystemOutput, world);
+
+                            world.readUserInput("Which one did you mean?", function (i) {
+                                if (i > 0 && i < interpretations.length) {
+                                    next(interpretations[i]);
+                                } else {
+                                    world.printSystemOutput("Unfortunately, I didn't quite grasp that.");
+                                    next();
+                                }
+                            });
+                        }
+                    },
+                    function (interpretation) {
+                        // TODO planner here
+                        world.printSystemOutput("Tjohoo! Interpretation selected =) TODO");
+                    }
+                );
+            }
+        });
+
+        world.printDebugInfo("dododo parseUtteranceIntoPlan");
+        callback(null, []);
+
+        // TODO: call callback
+    }
+
+
+
+    export function parseUtteranceIntoPlanOld(world : World, utterance : string) : string[] {
+
+        /*
         try {
             var parses : Parser.Result[] = Parser.parse(utterance);
         } catch(err) {
@@ -80,12 +156,6 @@ module Shrdlite {
                 throw err;
             }
         }
-        world.printDebugInfo("Found " + parses.length + " parses");
-        parses.forEach((res, n) => {
-            world.printDebugInfo("  (" + n + ") " + Parser.parseToString(res));
-        });
-
-        var extendedState = extendWorldState(world.currentState);
 
         try {
             var interpretations : PddlLiteral[][][] = Interpreter.interpret(parses, extendedState);
@@ -97,6 +167,7 @@ module Shrdlite {
                 throw err;
             }
         }
+        */
 
         /*
         // Ambiguity resolution?
@@ -121,6 +192,7 @@ module Shrdlite {
         }
         */
 
+        /*
         world.printDebugInfo("Found " + interpretations.length + " interpretations");
         interpretations.forEach((res, n) => {
             world.printDebugInfo("  (" + n + ") " + Interpreter.interpretationToString(res));
@@ -142,6 +214,7 @@ module Shrdlite {
         plans.forEach((res, n) => {
             world.printDebugInfo("  (" + n + ") " + Planner.planToString(res));
         });
+        */
 
         world.printError("Planner not done yet");
         return null;

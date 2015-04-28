@@ -6,26 +6,29 @@ module Parser {
     //////////////////////////////////////////////////////////////////////
     // exported functions, classes and interfaces/types
 
-    export function parse(input:string) : Result[] {
+    export function parse(input:string, callback) : Result[] {
         var nearleyParser = new nearley.Parser(grammar.ParserRules, grammar.ParserStart);
         var parsestr = input.toLowerCase().replace(/\W/g, "");
         try {
             var results : Command[] = nearleyParser.feed(parsestr).results;
         } catch(err) {
             if ('offset' in err) {
-                throw new Parser.Error(
-                    'Parsing failed after ' + err.offset + ' characters', err.offset);
+                var errorMsg = 'Parsing failed after ' + err.offset + ' characters ' + err.offset;
                 // parsestr.slice(0, err.offset) + '<HERE>' + parsestr.slice(err.offset);
             } else {
-                throw err;
+                var errorMsg = 'Parsing failed, general error '+err;
             }
+            callback(errorMsg);
+            return;
         }
         if (!results.length) {
-            throw new Parser.Error('Incomplete input', parsestr.length);
+            callback('Parsing failed, incomplete input',parsestr.length);
+            return;
         }
-        return results.map((c) => {
+        var result = results.map((c) => {
             return {input: input, prs: clone(c)};
         });
+        callback(null, result);
     }
 
 

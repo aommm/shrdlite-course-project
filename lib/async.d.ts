@@ -96,6 +96,7 @@ interface Async {
     doWhilst(fn: AsyncVoidFunction, test: () => boolean, callback: (err: any) => void): void;
     until(test: () => boolean, fn: AsyncVoidFunction, callback: (err: any) => void): void;
     doUntil(fn: AsyncVoidFunction, test: () => boolean, callback: (err: any) => void): void;
+    forever(fn: Function, callback: (err: any) => void): void;
     waterfall(tasks: Function[], callback?: AsyncResultArrayCallback<any>): void;
     queue<T>(worker: AsyncWorker<T>, concurrency: number): AsyncQueue<T>;
     priorityQueue<T>(worker: AsyncWorker<T>, concurrency: number): AsyncPriorityQueue<T>;

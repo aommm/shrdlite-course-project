@@ -1,5 +1,5 @@
 
-TARGETS = html ajax ansi offline
+TARGETS = html
 
 .DELETE_ON_ERROR:
 

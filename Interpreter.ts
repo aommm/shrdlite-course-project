@@ -7,7 +7,9 @@ module Interpreter {
     //////////////////////////////////////////////////////////////////////
     // exported functions, classes and interfaces/types
 
-    export function interpret(parses : Parser.Result[], state : ExtendedWorldState) : PddlLiteral[][][] {
+    export function interpret(parses : Parser.Result[],
+                              state : ExtendedWorldState,
+                              callback: (err : string, res? : PddlLiteral[][][]) => void) {
 
         // TODO remove, used for debugging
         this._ = _;
@@ -17,9 +19,9 @@ module Interpreter {
           , intpsPerCmd : PddlLiteral[][][][] = _.map(cmds, function(a) {return interpretCommand(a, state);})
           , intps       : PddlLiteral[][][]   = concat(intpsPerCmd)
         if (intps.length) {
-            return intps;
+            callback(null, intps);
         } else {
-            throw new Interpreter.Error("Found no interpretation");
+            callback('Interpreter error: found no interpretation');
         }
     }
 
