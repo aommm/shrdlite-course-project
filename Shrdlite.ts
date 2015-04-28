@@ -1,3 +1,5 @@
+///<reference path="lib/async.d.ts"/>
+
 ///<reference path="World.ts"/>
 ///<reference path="Parser.ts"/>
 ///<reference path="Interpreter.ts"/>
